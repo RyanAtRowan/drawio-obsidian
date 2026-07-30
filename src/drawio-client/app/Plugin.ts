@@ -1,8 +1,11 @@
 import { mxCell, mxEventObject, mxPopupMenu } from "mxgraph";
 import {
   ActionMessage,
+  ActionMessageActions,
   DrawioLoadActionMessage,
   EventMessageEvents,
+  VaultFilePickerResultActionMessage,
+  VaultFilePickerResultFile,
 } from "src/Messages";
 import { FrameMessenger } from "../../FrameMessenger";
 import { patch } from "../patch";
@@ -125,6 +128,120 @@ export default class Plugin {
     // can end up collapsed by default, which is confusing since it's the
     // only shape palette we show.
     this.expandGeneralShapesPalette(app);
+
+    // Add a "Choose vault file..." button to the Edit Link dialog, so
+    // links can target a note/canvas/diagram elsewhere in the vault
+    // instead of only external URLs or in-diagram pages.
+    this.addVaultFileLinkPicker();
+  }
+
+  private addVaultFileLinkPicker() {
+    const plugin = this;
+    patch(
+      EditorUi.prototype,
+      "showLinkDialog",
+      (fn) =>
+        function (...args: any[]) {
+          const result = fn.apply(this, args);
+          plugin.repurposePageSelectForVaultFiles(this as App);
+          return result;
+        }
+    );
+  }
+
+  // The Edit Link dialog's bottom radio + dropdown normally lets you link
+  // to another page within the same diagram (drawio's multi-page feature,
+  // which this plugin doesn't otherwise expose). We repurpose that slot to
+  // link to a file elsewhere in the vault instead: whatever value ends up
+  // selected in the <select> is exactly what drawio's own OK-button submit
+  // logic reads when that radio is checked, so setting it there (rather
+  // than trying to fake the URL field + a radio switch) means it's always
+  // whatever actually gets submitted, with no separate state to fall out
+  // of sync.
+  private repurposePageSelectForVaultFiles(app: App) {
+    const container = app.dialog && app.dialog.container;
+    if (!container) {
+      return;
+    }
+    const select = container.querySelector("select") as HTMLSelectElement;
+    const radios = container.querySelectorAll(
+      "input[type=radio]"
+    ) as NodeListOf<HTMLInputElement>;
+    const [urlRadio, vaultRadio] = Array.from(radios);
+    if (!select || !urlRadio || !vaultRadio) {
+      return;
+    }
+
+    select.innerHTML = "";
+    const option = document.createElement("option");
+    option.textContent = "Choose a vault file...";
+    option.value = "";
+    select.appendChild(option);
+
+    const openPicker = (evt: Event) => {
+      evt.preventDefault();
+      console.log("[Diagrams] opening vault file picker");
+      this.requestVaultFileLink().then((file) => {
+        console.log("[Diagrams] openPicker got file", file);
+        if (!file) {
+          return;
+        }
+        option.textContent = file.path;
+        option.value = file.uri;
+        select.value = file.uri;
+        urlRadio.checked = false;
+        vaultRadio.checked = true;
+        console.log(
+          "[Diagrams] select value is now",
+          select.value,
+          "vaultRadio.checked",
+          vaultRadio.checked
+        );
+      });
+    };
+
+    // mousedown (not click) + preventDefault stops the native dropdown
+    // from opening, so clicking this always opens our picker instead.
+    select.addEventListener("mousedown", openPicker);
+    vaultRadio.addEventListener("click", openPicker);
+  }
+
+  // Asks Obsidian (outside the iframe) to show a file picker, and resolves
+  // with the chosen file's info, or null if the picker was cancelled.
+  private requestVaultFileLink(): Promise<VaultFilePickerResultFile | null> {
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    console.log("[Diagrams] requesting vault file picker", requestId);
+    return this.frameMessenger
+      .sendMessageAndWait(
+        {
+          event: EventMessageEvents.RequestVaultFilePicker,
+          requestId,
+        },
+        (message: any) => {
+          const isMatch =
+            message.action === ActionMessageActions.VaultFilePickerResult &&
+            message.requestId === requestId;
+          if (message.action === ActionMessageActions.VaultFilePickerResult) {
+            console.log(
+              "[Diagrams] saw vault-file-picker-result message",
+              message,
+              "matches this request:",
+              isMatch
+            );
+          }
+          return isMatch;
+        },
+        // Generous timeout - the user may take a while to search and pick.
+        10 * 60 * 1000
+      )
+      .then((message: VaultFilePickerResultActionMessage) => {
+        console.log("[Diagrams] vault file picker resolved", message);
+        return message.file;
+      })
+      .catch((err) => {
+        console.error("[Diagrams] vault file picker request failed", err);
+        return null;
+      });
   }
 
   private expandGeneralShapesPalette(app: App) {

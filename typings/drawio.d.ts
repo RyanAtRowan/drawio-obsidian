@@ -31,6 +31,7 @@ declare module "drawio" {
       statusContainer: HTMLElement;
       formatWindow: { window: mxWindow };
       sidebar: Sidebar;
+      dialog: { container: HTMLElement };
       getCurrentFile(): DrawioFile;
       toggleFormatPanel(visible: boolean): void;
       setPageVisible(visible: boolean): void;

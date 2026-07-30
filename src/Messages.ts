@@ -5,6 +5,7 @@ export enum ActionMessageActions {
   FrameConfig = "frame-config",
   Load = "load",
   ToggleBodyClass = "toggle-body-class",
+  VaultFilePickerResult = "vault-file-picker-result",
 }
 
 export type FrameConfigActionMessage = {
@@ -38,13 +39,26 @@ export type DrawioLoadActionMessage = {
   xml: string;
 };
 
+export type VaultFilePickerResultFile = {
+  name: string;
+  path: string;
+  uri: string;
+};
+
+export type VaultFilePickerResultActionMessage = {
+  action: ActionMessageActions.VaultFilePickerResult;
+  requestId: string;
+  file: VaultFilePickerResultFile | null;
+};
+
 export type ActionMessage =
   | ScriptActionMessage
   | StylesheetActionMessage
   | CssActionMessage
   | ToggleBodyClassActionMessage
   | FrameConfigActionMessage
-  | DrawioLoadActionMessage;
+  | DrawioLoadActionMessage
+  | VaultFilePickerResultActionMessage;
 
 export enum EventMessageEvents {
   Change = "change",
@@ -53,6 +67,7 @@ export enum EventMessageEvents {
   Load = "load",
   FocusIn = "focusin",
   FocusOut = "focusout",
+  RequestVaultFilePicker = "request-vault-file-picker",
 }
 
 export type FileChangeEventMessage = {
@@ -81,12 +96,18 @@ export type DrawioLoadEventMessage = {
   xml: string;
 };
 
+export type RequestVaultFilePickerEventMessage = {
+  event: EventMessageEvents.RequestVaultFilePicker;
+  requestId: string;
+};
+
 export type EventMessage =
   | FrameEventMessage
   | FocusInEventMessage
   | FocusOutEventMessage
   | DrawioInitEventMessage
   | DrawioLoadEventMessage
-  | FileChangeEventMessage;
+  | FileChangeEventMessage
+  | RequestVaultFilePickerEventMessage;
 
 export type Message = ActionMessage | EventMessage;

@@ -7,6 +7,7 @@ import {
   DrawioLoadEventMessage,
   EventMessage,
   EventMessageEvents,
+  VaultFilePickerResultFile,
 } from "./Messages";
 import { FrameMessenger } from "./FrameMessenger";
 import { DiagramPluginSettings } from "./DiagramPluginSettings";
@@ -32,6 +33,14 @@ export class StateChangeEvent extends Event {
   constructor(initialized: boolean) {
     super("stateChange");
     this.initialized = initialized;
+  }
+}
+
+export class VaultFilePickerRequestEvent extends Event {
+  public readonly requestId: string;
+  constructor(requestId: string) {
+    super("vaultFilePickerRequest");
+    this.requestId = requestId;
   }
 }
 
@@ -243,7 +252,32 @@ window.parent.postMessage("{\\"event\\":\\"iframe\\"}",'*');
       case EventMessageEvents.FocusOut:
         this.dispatchEvent(new Event("focusout"));
         break;
+      case EventMessageEvents.RequestVaultFilePicker:
+        console.log(
+          "[Diagrams] DrawioClient received request-vault-file-picker",
+          message.requestId
+        );
+        this.dispatchEvent(new VaultFilePickerRequestEvent(message.requestId));
+        break;
     }
+  }
+
+  // Sends the result of a vault file picker request back into the frame,
+  // in response to a VaultFilePickerRequestEvent.
+  public respondToVaultFilePickerRequest(
+    requestId: string,
+    file: VaultFilePickerResultFile | null
+  ) {
+    console.log(
+      "[Diagrams] DrawioClient sending vault-file-picker-result",
+      requestId,
+      file
+    );
+    this.frameMessenger.sendMessage({
+      action: ActionMessageActions.VaultFilePickerResult,
+      requestId,
+      file,
+    });
   }
 
   // Sends the URL params configuration that controls the drawio app

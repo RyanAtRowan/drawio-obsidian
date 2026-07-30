@@ -6,8 +6,10 @@ import { createLoadProgress } from "./LoadProgress";
 import DrawioClient, {
   FileChangeEvent,
   StateChangeEvent,
+  VaultFilePickerRequestEvent,
 } from "./DrawioClient";
 import DiagramView from "./DiagramView";
+import { VaultFileSuggestModal } from "./VaultFileSuggestModal";
 
 const FILE_EXTENSIONS = ["svg"];
 
@@ -61,6 +63,29 @@ export class DiagramEditView extends DiagramViewBase {
     } else {
       this.loadProgress.show();
     }
+  }
+
+  private handleVaultFilePickerRequest(event: VaultFilePickerRequestEvent) {
+    const requestId = event.requestId;
+    console.log(
+      "[Diagrams] DiagramEditView opening vault file suggest modal",
+      requestId
+    );
+    new VaultFileSuggestModal(this.app, (file) => {
+      console.log("[Diagrams] VaultFileSuggestModal picked", file);
+      if (!file) {
+        this.drawioClient.respondToVaultFilePickerRequest(requestId, null);
+        return;
+      }
+      const vaultName = encodeURIComponent(this.app.vault.getName());
+      const filePath = encodeURIComponent(file.path);
+      const uri = `obsidian://open?vault=${vaultName}&file=${filePath}`;
+      this.drawioClient.respondToVaultFilePickerRequest(requestId, {
+        name: file.name,
+        path: file.path,
+        uri,
+      });
+    }).open();
   }
 
   private fontCss() {
@@ -136,6 +161,10 @@ export class DiagramEditView extends DiagramViewBase {
     this.drawioClient.addEventListener(
       "fileChange",
       this.handleFileChange.bind(this)
+    );
+    this.drawioClient.addEventListener(
+      "vaultFilePickerRequest",
+      this.handleVaultFilePickerRequest.bind(this)
     );
 
     // Set the active leaf because the blur event doesn't leave the iframe so Obsidian doesn't
