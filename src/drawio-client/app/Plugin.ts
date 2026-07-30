@@ -118,6 +118,36 @@ export default class Plugin {
 
     // Hide menu items that aren't relevant
     this.removeMenus();
+
+    // Keep the "General" shapes palette expanded. Depending on how drawio
+    // resolves its (disabled) persisted UI settings on startup, this section
+    // can end up collapsed by default, which is confusing since it's the
+    // only shape palette we show.
+    this.expandGeneralShapesPalette(app);
+  }
+
+  private expandGeneralShapesPalette(app: App) {
+    const sidebar = app.sidebar;
+    if (!sidebar) {
+      return;
+    }
+
+    // this.palettes[id] is [titleElement, outerElement], where outerElement
+    // wraps the actual collapsible content div (outer.appendChild(div) in
+    // Sidebar.prototype.addPalette). That inner div is what really gets
+    // display:none when collapsed.
+    const [title, outer] = sidebar.palettes["general"] || [];
+    const content = outer && (outer.firstChild as HTMLElement);
+    if (!title || !content) {
+      return;
+    }
+
+    if (content.style.display === "none") {
+      // Simulate a real click on the fold title so drawio's own toggle
+      // handler runs, keeping the content visibility and fold arrow icon
+      // in sync exactly the way a manual click would.
+      title.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    }
   }
 
   private removeMenubars(app: App) {

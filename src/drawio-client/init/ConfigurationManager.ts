@@ -240,11 +240,17 @@ export interface DrawioConfig {
    * will apply the default colors.
    */
   styles?: Array<{} | DrawioStyles>;
+
+  /**
+   * Specifies if the grid is enabled by default. The default is true.
+   */
+  defaultGridEnabled?: boolean;
 }
 
 const defaultConfiguration: DrawioConfig = {
   defaultLibraries: "general",
   libraries: [],
+  defaultGridEnabled: false,
   // defaultEdgeStyle: {
   //   // strokeColor: "currentColor",
   // },
@@ -389,6 +395,7 @@ export class ConfigurationManager {
     return {
       defaultLibraries: "general",
       libraries: [],
+      defaultGridEnabled: false,
       defaultEdgeStyle: this.getDefaultEdgeStyle(settings),
       defaultVertexStyle: this.getDefaultVertexStyle(settings),
       styles: [

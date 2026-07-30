@@ -21,7 +21,7 @@ export interface DiagramPluginSettings {
 export const DEFAULT_SETTINGS: DiagramPluginSettings = {
   welcomeComplete: false,
   theme: {
-    dark: null,
+    dark: false,
     layout: SettingsTheme.sketch,
   },
   drawing: {

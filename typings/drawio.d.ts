@@ -22,11 +22,15 @@ declare module "drawio" {
       getGraphXml(): XMLDocument;
     }
     class EditorUi {}
+    class Sidebar {
+      palettes: { [key: string]: HTMLElement[] };
+    }
     class App {
       editor: Editor;
       menubarContainer: HTMLElement;
       statusContainer: HTMLElement;
       formatWindow: { window: mxWindow };
+      sidebar: Sidebar;
       getCurrentFile(): DrawioFile;
       toggleFormatPanel(visible: boolean): void;
       setPageVisible(visible: boolean): void;
