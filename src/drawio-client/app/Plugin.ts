@@ -248,6 +248,13 @@ export default class Plugin {
     // Remove the status elements because this plugin manages saving the diagram
     app.statusContainer.remove();
     app.statusContainer = null;
+
+    // Since statusContainer is now null, drawio's own setStatusText (which
+    // Ctrl+S and other save-related actions call to show "Saving..."/"Saved"
+    // text) throws trying to set innerHTML on it. Saving already happens
+    // live via our own change listener (see handleGraphChange), so there's
+    // no status text to show anyway - just no-op it instead of crashing.
+    patch(EditorUi.prototype, "setStatusText", (fn) => function () {});
     if (
       app.menubarContainer.parentElement.firstChild === app.menubarContainer &&
       app.menubarContainer.parentElement.childElementCount === 1
