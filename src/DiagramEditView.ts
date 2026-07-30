@@ -67,12 +67,7 @@ export class DiagramEditView extends DiagramViewBase {
 
   private handleVaultFilePickerRequest(event: VaultFilePickerRequestEvent) {
     const requestId = event.requestId;
-    console.log(
-      "[Diagrams] DiagramEditView opening vault file suggest modal",
-      requestId
-    );
     new VaultFileSuggestModal(this.app, (file) => {
-      console.log("[Diagrams] VaultFileSuggestModal picked", file);
       if (!file) {
         this.drawioClient.respondToVaultFilePickerRequest(requestId, null);
         return;

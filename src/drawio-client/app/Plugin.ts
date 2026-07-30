@@ -180,9 +180,7 @@ export default class Plugin {
 
     const openPicker = (evt: Event) => {
       evt.preventDefault();
-      console.log("[Diagrams] opening vault file picker");
       this.requestVaultFileLink().then((file) => {
-        console.log("[Diagrams] openPicker got file", file);
         if (!file) {
           return;
         }
@@ -191,12 +189,6 @@ export default class Plugin {
         select.value = file.uri;
         urlRadio.checked = false;
         vaultRadio.checked = true;
-        console.log(
-          "[Diagrams] select value is now",
-          select.value,
-          "vaultRadio.checked",
-          vaultRadio.checked
-        );
       });
     };
 
@@ -210,38 +202,20 @@ export default class Plugin {
   // with the chosen file's info, or null if the picker was cancelled.
   private requestVaultFileLink(): Promise<VaultFilePickerResultFile | null> {
     const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    console.log("[Diagrams] requesting vault file picker", requestId);
     return this.frameMessenger
       .sendMessageAndWait(
         {
           event: EventMessageEvents.RequestVaultFilePicker,
           requestId,
         },
-        (message: any) => {
-          const isMatch =
-            message.action === ActionMessageActions.VaultFilePickerResult &&
-            message.requestId === requestId;
-          if (message.action === ActionMessageActions.VaultFilePickerResult) {
-            console.log(
-              "[Diagrams] saw vault-file-picker-result message",
-              message,
-              "matches this request:",
-              isMatch
-            );
-          }
-          return isMatch;
-        },
+        (message: any) =>
+          message.action === ActionMessageActions.VaultFilePickerResult &&
+          message.requestId === requestId,
         // Generous timeout - the user may take a while to search and pick.
         10 * 60 * 1000
       )
-      .then((message: VaultFilePickerResultActionMessage) => {
-        console.log("[Diagrams] vault file picker resolved", message);
-        return message.file;
-      })
-      .catch((err) => {
-        console.error("[Diagrams] vault file picker request failed", err);
-        return null;
-      });
+      .then((message: VaultFilePickerResultActionMessage) => message.file)
+      .catch(() => null);
   }
 
   private expandGeneralShapesPalette(app: App) {

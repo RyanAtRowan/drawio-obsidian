@@ -253,10 +253,6 @@ window.parent.postMessage("{\\"event\\":\\"iframe\\"}",'*');
         this.dispatchEvent(new Event("focusout"));
         break;
       case EventMessageEvents.RequestVaultFilePicker:
-        console.log(
-          "[Diagrams] DrawioClient received request-vault-file-picker",
-          message.requestId
-        );
         this.dispatchEvent(new VaultFilePickerRequestEvent(message.requestId));
         break;
     }
@@ -268,11 +264,6 @@ window.parent.postMessage("{\\"event\\":\\"iframe\\"}",'*');
     requestId: string,
     file: VaultFilePickerResultFile | null
   ) {
-    console.log(
-      "[Diagrams] DrawioClient sending vault-file-picker-result",
-      requestId,
-      file
-    );
     this.frameMessenger.sendMessage({
       action: ActionMessageActions.VaultFilePickerResult,
       requestId,

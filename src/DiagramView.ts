@@ -2,12 +2,14 @@ import { TFile, ViewState, WorkspaceLeaf } from "obsidian";
 import { DIAGRAM_EDIT_VIEW_TYPE, DIAGRAM_VIEW_TYPE } from "./constants";
 import DiagramPlugin from "./DiagramPlugin";
 import DiagramViewBase from "./DiagramViewBase";
+import { DiagramPanZoom } from "./DiagramPanZoom";
 
 const FILE_EXTENSIONS = ["svg"];
 
 export default class DiagramView extends DiagramViewBase {
   editActionElement: HTMLElement;
   isEditable: boolean;
+  private panZoom: DiagramPanZoom;
   constructor(leaf: WorkspaceLeaf, plugin: DiagramPlugin) {
     super(leaf, plugin);
   }
@@ -31,11 +33,18 @@ export default class DiagramView extends DiagramViewBase {
   }
 
   async onLoadFile(file: TFile) {
+    this.destroyPanZoom();
+
     const fileData = await this.app.vault.read(file);
     const template = document.createElement("template");
     template.innerHTML = fileData;
     this.contentEl.empty();
     this.contentEl.appendChild(template.content);
+
+    const svg = this.contentEl.querySelector("svg") as SVGSVGElement | null;
+    if (svg) {
+      this.panZoom = new DiagramPanZoom(this.contentEl, svg);
+    }
 
     this.isEditable = await this.isDrawioFile(file);
     if (this.isEditable) {
@@ -46,7 +55,15 @@ export default class DiagramView extends DiagramViewBase {
   }
 
   async onUnloadFile(file: TFile) {
+    this.destroyPanZoom();
     this.contentEl.empty();
+  }
+
+  private destroyPanZoom() {
+    if (this.panZoom) {
+      this.panZoom.destroy();
+      this.panZoom = null;
+    }
   }
 
   canAcceptExtension(extension: string) {
