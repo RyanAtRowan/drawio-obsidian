@@ -78,14 +78,41 @@ export class RequestManager {
     return blobUrl;
   }
 
+  // Finds the raw CSS text for a known local stylesheet resource, or null
+  // if the url isn't a local text/css resource we have registered.
+  private getLocalStylesheetSource(url: string): string | null {
+    if (/^(https?:|\/\/|data:|app:)/.test(url)) {
+      return null;
+    }
+    const file = this.responses.find((file) => file.href === url);
+    if (file != null && file.mediaType === "text/css") {
+      return file.source;
+    }
+    return null;
+  }
+
   private interceptStylesheets() {
     const resolveResourceUrl = this.resolveResourceUrl.bind(this);
+    const getLocalStylesheetSource = this.getLocalStylesheetSource.bind(this);
     patch(
       HTMLLinkElement.prototype,
       "setAttribute",
       (fn) =>
         function (qualifiedName: string, value: string) {
           if (qualifiedName === "href") {
+            const localCss = getLocalStylesheetSource(value);
+            if (localCss != null) {
+              // Obsidian's Content-Security-Policy allows inline <style>
+              // elements ('unsafe-inline' in style-src) but blocks blob:
+              // urls for stylesheets, so <link href="blob:..."> silently
+              // fails to load. Inject the CSS directly instead, and point
+              // this now-redundant <link> at an empty stylesheet so it
+              // doesn't also attempt (and fail) a blocked load.
+              const styleElement = document.createElement("style");
+              styleElement.textContent = localCss;
+              document.head.appendChild(styleElement);
+              return fn.call(this, qualifiedName, "data:text/css,");
+            }
             value = resolveResourceUrl(value);
           }
           return fn.call(this, qualifiedName, value);

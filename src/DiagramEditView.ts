@@ -64,13 +64,16 @@ export class DiagramEditView extends DiagramViewBase {
   }
 
   private fontCss() {
+    // Manrope's @font-face is already injected offline at frame init time
+    // (see src/drawio-client/ManropeFont.ts), this just sets it as the
+    // default, falling back to Obsidian's own theme font.
     const defaultFont = window
       .getComputedStyle(document.documentElement)
       .getPropertyValue("--default-font");
     const cssRules = [
       `
 :root{
-  font-family: ${defaultFont};
+  font-family: 'Manrope', ${defaultFont};
   font-size: 14px;
 }
 `,

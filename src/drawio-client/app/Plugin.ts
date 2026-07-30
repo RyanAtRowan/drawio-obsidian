@@ -7,6 +7,7 @@ import {
 import { FrameMessenger } from "../../FrameMessenger";
 import { patch } from "../patch";
 import { FontManager } from "./FontManager";
+import { MANROPE_FONT_FACE_CSS } from "../ManropeFont";
 
 export default class Plugin {
   app: App;
@@ -264,7 +265,11 @@ export default class Plugin {
 
   private async embedFontsInSvg(editor: Editor, svg: SVGElement) {
     const customFonts = editor.graph.getCustomFonts();
-    const fontCssRules: string[] = [];
+    // Always embed Manrope (the plugin's default font) so exported SVGs
+    // render correctly even when opened somewhere without it installed.
+    // No fontSource is set on the default styles, so getCustomFonts()
+    // won't pick this up on its own.
+    const fontCssRules: string[] = [MANROPE_FONT_FACE_CSS];
     for (const customFont of customFonts) {
       try {
         const fontCssRule = await this.fontManager.getFontCssForUrl(

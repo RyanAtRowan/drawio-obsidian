@@ -4,6 +4,10 @@ import { RequestManager } from "./RequestManager";
 import { ConfigurationManager } from "./ConfigurationManager";
 import drawioCss from "inline!./src/drawio-client/drawio.css";
 import darkmodeCss from "inline!./src/assets/dark.css";
+import {
+  MANROPE_FONT_FACE_CSS,
+  MANROPE_UI_FONT_OVERRIDE_CSS,
+} from "../ManropeFont";
 
 /**
  * This is the entry point that is loaded into the iframe.
@@ -22,6 +26,8 @@ function init(win: Window) {
   // to get around obsidian's new content security policy
   frame.addCss(drawioCss);
   frame.addCss(darkmodeCss);
+  frame.addCss(MANROPE_FONT_FACE_CSS);
+  frame.addCss(MANROPE_UI_FONT_OVERRIDE_CSS);
 }
 
 init(window);

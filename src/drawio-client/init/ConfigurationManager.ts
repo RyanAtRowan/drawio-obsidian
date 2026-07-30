@@ -416,6 +416,10 @@ export class ConfigurationManager {
     const defaultVertexStyle = {
       // fillColor: "#ffffff",
       // strokeColor: "currentColor",
+      // Manrope's @font-face is bundled and injected offline (see
+      // src/drawio-client/ManropeFont.ts), so no fontSource URL is needed
+      // here for drawio to fetch it.
+      fontFamily: "Manrope",
     };
 
     // if (settings.drawing.sketch) {
@@ -438,6 +442,7 @@ export class ConfigurationManager {
     const defaultEdgeStyle = {
       // edgeStyle: "none",
       // strokeColor: "currentColor",
+      fontFamily: "Manrope",
     };
 
     // if (settings.drawing.sketch) {

@@ -3,6 +3,23 @@ import diaTxt from "inline!./drawio/src/main/webapp/resources/dia.txt";
 //import commonCss from "inline!./drawio/src/main/webapp/mxgraph/css/common.css";
 import drawioCss from "inline!./src/drawio-client/drawio.css";
 
+// This was previously not intercepted, so it silently loaded from
+// https://app.diagrams.net over the network. It drives most of drawio's
+// own menu/dialog/toolbar styling (including several hardcoded
+// `font-family: Helvetica` rules), so bundle it locally and swap those
+// for Manrope while we're at it.
+import grapheditorCssSource from "inline!./drawio/src/main/webapp/styles/grapheditor.css";
+const grapheditorCss = grapheditorCssSource
+  .replace(
+    /font-family:\s*-apple-system,[^;]+;/g,
+    `font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, ui-sans-serif, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";`
+  )
+  .replace(
+    /font-family:\s*Arial,\s*Helvetica,\s*sans-serif;/g,
+    "font-family: 'Manrope', Arial, Helvetica, sans-serif;"
+  )
+  .replace(/font-family:\s*Helvetica;/g, "font-family: 'Manrope', Helvetica;");
+
 //import darkCss from "inline!./drawio/src/main/webapp/styles/dark.css";
 import darkCss from "inline!./src/assets/dark.css";
 
@@ -34,6 +51,11 @@ export default [
     mediaType: "text/css",
     href: "styles/dark.css",
     source: darkCss,
+  },
+  {
+    mediaType: "text/css",
+    href: "styles/grapheditor.css",
+    source: grapheditorCss,
   },
   {
     mediaType: "text/plain",
