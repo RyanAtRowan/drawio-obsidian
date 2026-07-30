@@ -1,4 +1,5 @@
 import { mxCell, mxEventObject, mxPopupMenu } from "mxgraph";
+import { Graph } from "drawio";
 import {
   ActionMessage,
   ActionMessageActions,
@@ -133,6 +134,109 @@ export default class Plugin {
     // links can target a note/canvas/diagram elsewhere in the vault
     // instead of only external URLs or in-diagram pages.
     this.addVaultFileLinkPicker();
+
+    // Lock new edges' endpoints to a fixed spot on each shape, instead of
+    // drawio's default "floating" connection (which silently picks a new
+    // attachment point/side any time either connected shape moves).
+    this.fixFloatingConnectionPointsOnConnect(app);
+  }
+
+  // By default, dropping an edge anywhere on a shape's body (rather than on
+  // one of its small fixed connection-point markers) creates a "floating"
+  // connection: no exitX/exitY (or entryX/entryY) style is recorded, so
+  // drawio recomputes the attachment point from scratch on every repaint,
+  // based on wherever the *other* end currently is. That's what makes an
+  // edge's mounting point appear to slide around a shape whenever the
+  // opposite shape is moved. We want an edge's attachment point to stay put
+  // relative to its own shape once created, matching a fixed connection.
+  //
+  // Rather than changing the connect gesture, we listen for the "connect"
+  // event that fires right after an edge is created/reconnected and, for
+  // any endpoint that's still floating, convert it into an explicit fixed
+  // point based on where it's *currently* rendered - so the visual result
+  // at the moment of connecting doesn't change, but it no longer moves
+  // afterwards.
+  private fixFloatingConnectionPointsOnConnect(app: App) {
+    const graph = app.editor.graph;
+    if (!graph.connectionHandler) {
+      return;
+    }
+    graph.connectionHandler.addListener(
+      "connect",
+      (_sender: any, evt: mxEventObject) => {
+        const edge = evt.getProperty<mxCell>("cell");
+        if (!edge) {
+          return;
+        }
+        // The "connect" event fires from inside mxConnectionHandler's
+        // still-open model transaction - endUpdate() (and the view
+        // revalidation it triggers) doesn't run until just after this
+        // listener returns. Reading graph.getView().getState(edge) here
+        // would see stale/absent geometry, so defer until the current
+        // transaction has actually finished and the view has real
+        // coordinates for the new edge.
+        setTimeout(() => {
+          this.fixFloatingConnectionPoint(graph, edge, true);
+          this.fixFloatingConnectionPoint(graph, edge, false);
+        }, 0);
+      }
+    );
+  }
+
+  private fixFloatingConnectionPoint(
+    graph: Graph,
+    edge: mxCell,
+    isSource: boolean
+  ) {
+    const terminal = graph.model.getTerminal(edge, isSource);
+    if (!terminal) {
+      // Dangling end (e.g. dropped on empty canvas) - nothing to fix.
+      return;
+    }
+
+    const style = graph.getCellStyle(edge) || {};
+    const xKey = isSource ? "exitX" : "entryX";
+    const yKey = isSource ? "exitY" : "entryY";
+    if (style[xKey] != null && style[yKey] != null) {
+      // Already a fixed point (the user connected to an explicit
+      // connection point marker) - leave it alone.
+      return;
+    }
+
+    const view = graph.getView();
+    const edgeState = view.getState(edge);
+    const terminalState = view.getState(terminal);
+    if (
+      !edgeState ||
+      !terminalState ||
+      !edgeState.absolutePoints ||
+      edgeState.absolutePoints.length === 0 ||
+      !terminalState.width ||
+      !terminalState.height
+    ) {
+      return;
+    }
+
+    const points = edgeState.absolutePoints;
+    const point = isSource ? points[0] : points[points.length - 1];
+    if (!point) {
+      return;
+    }
+
+    // Convert the point's current on-screen position into a fraction
+    // (0..1) of the terminal's own bounding box - the same coordinate
+    // system drawio itself uses for exitX/exitY and entryX/entryY - so the
+    // point stays anchored to this shape regardless of where the other
+    // end of the edge goes.
+    const fx = (point.x - terminalState.x) / terminalState.width;
+    const fy = (point.y - terminalState.y) / terminalState.height;
+
+    graph.setConnectionConstraint(
+      edge,
+      terminal,
+      isSource,
+      new mxConnectionConstraint(new mxPoint(fx, fy), true)
+    );
   }
 
   private addVaultFileLinkPicker() {

@@ -440,9 +440,11 @@ export class ConfigurationManager {
     settings: DiagramPluginSettings
   ): Record<string, string> {
     const defaultEdgeStyle = {
-      // edgeStyle: "none",
       // strokeColor: "currentColor",
       fontFamily: "Manrope",
+      // Default new edges to orthogonal (right-angle) routing instead of
+      // drawio's default straight-line style.
+      edgeStyle: "orthogonalEdgeStyle",
     };
 
     // if (settings.drawing.sketch) {

@@ -27,5 +27,23 @@ declare module "mxgraph" {
       scale(scale: number): void;
       translate(x: number, y: number): void;
     }
+
+    class mxPoint {
+      constructor(x?: number, y?: number);
+      x: number;
+      y: number;
+    }
+
+    class mxConnectionConstraint {
+      constructor(
+        point?: mxPoint,
+        perimeter?: boolean,
+        name?: any,
+        dx?: number,
+        dy?: number
+      );
+      point: mxPoint;
+      perimeter: boolean;
+    }
   }
 }

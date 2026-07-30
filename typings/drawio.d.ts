@@ -5,12 +5,20 @@ declare module "drawio" {
 
   export interface Graph {
     model: any;
+    connectionHandler: any;
     addListener(
       eventName: string,
       listener: EventListenerOrEventListenerObject
     ): void;
     getView(): any;
     getCustomFonts(): Array<{ name: string; url: string }>;
+    getCellStyle(cell: any): any;
+    setConnectionConstraint(
+      edge: any,
+      terminal: any,
+      source: boolean,
+      constraint: any
+    ): void;
   }
 
   global {
