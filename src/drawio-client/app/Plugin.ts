@@ -139,6 +139,62 @@ export default class Plugin {
     // drawio's default "floating" connection (which silently picks a new
     // attachment point/side any time either connected shape moves).
     this.fixFloatingConnectionPointsOnConnect(app);
+
+    // Also lock the source end while a new edge is still being dragged
+    // out, not just once it's dropped.
+    this.fixFloatingSourceConnectionPointDuringDrag(app);
+  }
+
+  // Companion to fixFloatingConnectionPointsOnConnect(): that one only
+  // fixes an edge's endpoints once you let go of the mouse. Until then, an
+  // edge started from a shape's general body (rather than a precise fixed
+  // connection point marker) is "floating" for its whole live preview, so
+  // its exit point keeps recalculating as the cursor moves - it looks like
+  // the anchor is sliding around even before you release. This locks the
+  // source point in as soon as the drag preview has a real point to work
+  // with, so it stays put for the rest of the drag too.
+  private fixFloatingSourceConnectionPointDuringDrag(app: App) {
+    const connectionHandler = app.editor.graph.connectionHandler;
+    if (!connectionHandler) {
+      return;
+    }
+    patch(
+      connectionHandler,
+      "updateEdgeState",
+      (fn: Function) =>
+        function (current: any, constraint: any) {
+          fn.call(this, current, constraint);
+
+          const alreadyFixed =
+            this.sourceConstraint != null &&
+            this.sourceConstraint.point != null;
+          const sourceState = this.previous;
+          if (
+            alreadyFixed ||
+            !sourceState ||
+            !sourceState.width ||
+            !sourceState.height ||
+            !this.edgeState ||
+            !this.edgeState.absolutePoints ||
+            this.edgeState.absolutePoints.length === 0
+          ) {
+            return;
+          }
+
+          // First preview frame of this drag with a real point to work
+          // with - snapshot it as a fixed exit point (same fraction-of-
+          // bounding-box coordinate space drawio itself uses) and keep it
+          // for the rest of the drag instead of letting it keep
+          // recalculating.
+          const point = this.edgeState.absolutePoints[0];
+          const fx = (point.x - sourceState.x) / sourceState.width;
+          const fy = (point.y - sourceState.y) / sourceState.height;
+          this.sourceConstraint = new mxConnectionConstraint(
+            new mxPoint(fx, fy),
+            true
+          );
+        }
+    );
   }
 
   // By default, dropping an edge anywhere on a shape's body (rather than on
